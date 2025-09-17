@@ -14,6 +14,20 @@ import { Dashboard } from './pages/dashboard';
 
 const API_URL = '/api';
 
+// カスタムnotificationProvider - 削除成功時の自動通知を無効化
+const customNotificationProvider = {
+  ...notificationProvider,
+  open: (params: any) => {
+    // 削除成功時の自動通知をフィルタリング
+    if (params?.message?.includes('Successfully deleted') ||
+        params?.description?.includes('Successfully deleted')) {
+      return;
+    }
+    // その他の通知は表示
+    return notificationProvider.open(params);
+  }
+};
+
 function App() {
   return (
     <BrowserRouter>
@@ -21,7 +35,7 @@ function App() {
         <AntdApp>
             <Refine
               dataProvider={dataProvider(API_URL)}
-              notificationProvider={notificationProvider}
+              notificationProvider={customNotificationProvider}
               routerProvider={routerProvider}
               resources={[
                 {

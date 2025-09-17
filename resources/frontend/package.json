@@ -1,0 +1,30 @@
+{
+  "name": "pdf-analyzer-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@refinedev/antd": "^5.43.0",
+    "@refinedev/core": "^4.54.0",
+    "@refinedev/react-router-v6": "^4.6.0",
+    "@refinedev/simple-rest": "^5.0.8",
+    "@ant-design/icons": "^5.5.1",
+    "antd": "^5.22.5",
+    "axios": "^1.7.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}

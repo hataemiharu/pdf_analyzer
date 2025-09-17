@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { List, DateField } from '@refinedev/antd';
-import { Table, Space, Button, Tag, Empty, Card, Typography, Divider } from 'antd';
+import { Table, Space, Button, Tag, Empty, Card, Typography, Divider, Input, Alert } from 'antd';
 import { Link } from 'react-router-dom';
-import { UploadOutlined, EyeOutlined, DeleteOutlined, TableOutlined } from '@ant-design/icons';
+import { UploadOutlined, EyeOutlined, DeleteOutlined, TableOutlined, SearchOutlined } from '@ant-design/icons';
 import { useDelete } from '@refinedev/core';
 import axios from 'axios';
 
@@ -40,21 +40,44 @@ export const PdfList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [pageSize] = useState(5);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [inputKeyword, setInputKeyword] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
   const { mutate: deletePdf } = useDelete();
 
+  // テキストハイライト用のヘルパー関数
+  const highlightText = (text: string, keyword: string) => {
+    if (!keyword || !text) return text;
+
+    const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <mark key={index} style={{ backgroundColor: '#ffeb3b', padding: '2px 4px', borderRadius: '2px' }}>
+          {part}
+        </mark>
+      ) : part
+    );
+  };
+
   useEffect(() => {
-    fetchData(currentPage);
+    fetchData(currentPage, searchKeyword);
   }, [currentPage]);
 
-  const fetchData = async (page: number) => {
+  const fetchData = async (page: number, search: string = '') => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/pdf', {
-        params: {
-          page,
-          per_page: pageSize
-        }
-      });
+      const params: any = {
+        page,
+        per_page: pageSize
+      };
+
+      if (search) {
+        params.search = search;
+      }
+
+      const response = await axios.get('/api/pdf', { params });
       setData(response.data.data || []);
       setTotalItems(response.data.total || 0);
     } catch (error) {
@@ -100,6 +123,31 @@ export const PdfList: React.FC = () => {
     setSectionSummary([]);
   };
 
+  const handleSearch = async (keyword: string) => {
+    setSearchLoading(true);
+    setSearchKeyword(keyword);
+    setCurrentPage(1);
+    setSelectedRowKeys([]);
+    setShowSummaryTable(false);
+    setSectionSummary([]);
+
+    try {
+      await fetchData(1, keyword);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleClearSearch = async () => {
+    setSearchKeyword('');
+    setInputKeyword('');
+    setCurrentPage(1);
+    setSelectedRowKeys([]);
+    setShowSummaryTable(false);
+    setSectionSummary([]);
+    await fetchData(1, '');
+  };
+
   const handleShowSectionSummary = async () => {
     await fetchSectionSummary(selectedRowKeys);
     setShowSummaryTable(true);
@@ -121,6 +169,34 @@ export const PdfList: React.FC = () => {
         </Link>
       }
     >
+      {/* 検索ボックス */}
+      <Card style={{ marginBottom: 16 }}>
+        <Input.Search
+          placeholder="キーワードで検索（ファイル名、要約、内容から検索）"
+          enterButton={
+            <Button type="primary" icon={<SearchOutlined />} loading={searchLoading}>
+              検索
+            </Button>
+          }
+          size="large"
+          value={inputKeyword}
+          onChange={(e) => setInputKeyword(e.target.value)}
+          onSearch={handleSearch}
+          allowClear
+          onClear={handleClearSearch}
+        />
+
+        {/* 検索結果の表示 */}
+        {searchKeyword && (
+          <Alert
+            message={`「${searchKeyword}」の検索結果: ${totalItems}件`}
+            type="info"
+            style={{ marginTop: 12 }}
+            showIcon
+            closable={false}
+          />
+        )}
+      </Card>
       {selectedRowKeys.length > 0 && (
         <div style={{ marginBottom: 16, textAlign: 'center' }}>
           <Button
@@ -151,20 +227,37 @@ export const PdfList: React.FC = () => {
         locale={{
           emptyText: (
             <Empty
-              description="まだPDFファイルがアップロードされていません"
+              description={
+                searchKeyword
+                  ? `「${searchKeyword}」に一致する結果が見つかりませんでした`
+                  : "まだPDFファイルがアップロードされていません"
+              }
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             >
-              <Link to="/pdf/upload">
-                <Button type="primary" icon={<UploadOutlined />}>
-                  最初のPDFをアップロード
-                </Button>
-              </Link>
+              {searchKeyword ? (
+                <Space>
+                  <Button onClick={handleClearSearch}>
+                    検索をクリア
+                  </Button>
+                  <Link to="/pdf/upload">
+                    <Button type="primary" icon={<UploadOutlined />}>
+                      PDFをアップロード
+                    </Button>
+                  </Link>
+                </Space>
+              ) : (
+                <Link to="/pdf/upload">
+                  <Button type="primary" icon={<UploadOutlined />}>
+                    最初のPDFをアップロード
+                  </Button>
+                </Link>
+              )}
             </Empty>
           )
         }}
       >
         <Table.Column
-          title="日付"
+          title="アップロード日"
           dataIndex="slack_date"
           render={(value) => value ? <DateField value={value} format="YYYY/MM/DD" /> : '-'}
         />
@@ -172,7 +265,9 @@ export const PdfList: React.FC = () => {
           title="ファイル名"
           dataIndex="filename"
           render={(value) => (
-            <Tag color="blue">{value}</Tag>
+            <Tag color="blue">
+              {searchKeyword ? highlightText(value, searchKeyword) : value}
+            </Tag>
           )}
         />
         <Table.Column
@@ -195,15 +290,10 @@ export const PdfList: React.FC = () => {
                 lineHeight: '1.4',
                 margin: 0
               }}>
-                {value}
+                {searchKeyword ? highlightText(value, searchKeyword) : value}
               </pre>
             </div>
           )}
-        />
-        <Table.Column
-          title="アップロード日時"
-          dataIndex="created_at"
-          render={(value) => value ? <DateField value={value} format="YYYY/MM/DD HH:mm" /> : '-'}
         />
         <Table.Column
           title="アクション"

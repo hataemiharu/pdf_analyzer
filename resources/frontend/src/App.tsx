@@ -10,7 +10,6 @@ import '@refinedev/antd/dist/reset.css';
 import { PdfList } from './pages/pdf/list';
 import { PdfShow } from './pages/pdf/show';
 import { PdfUpload } from './pages/pdf/upload';
-import { CrossSummary } from './pages/cross-summary';
 import { Dashboard } from './pages/dashboard';
 
 const API_URL = '/api';
@@ -41,13 +40,6 @@ function App() {
                     label: 'PDF管理',
                   },
                 },
-                {
-                  name: 'cross-summary',
-                  list: '/cross-summary',
-                  meta: {
-                    label: '横断分析',
-                  },
-                },
               ]}
               options={{
                 syncWithLocation: true,
@@ -68,7 +60,6 @@ function App() {
                     <Route path="show/:id" element={<PdfShow />} />
                     <Route path="upload" element={<PdfUpload />} />
                   </Route>
-                  <Route path="/cross-summary" element={<CrossSummary />} />
                   <Route path="*" element={<ErrorComponent />} />
                 </Route>
               </Routes>

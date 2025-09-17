@@ -21,16 +21,14 @@ class PDFAnalyzerService
         $pdf = $this->parser->parseFile($uploadedFile->path());
         $text = $pdf->getText();
         
-        $date = $this->extractDateFromFilename($uploadedFile->getClientOriginalName());
-        
         $sections = $this->extractSections($text);
-        
+
         $summary = $this->generateSummary($text);
-        
+
         $document = PdfDocument::create([
             'filename' => $uploadedFile->getClientOriginalName(),
             'file_path' => $uploadedFile->store('pdfs'),
-            'slack_date' => $date,
+            'slack_date' => Carbon::now(),
             'raw_content' => $text,
             'summary' => $summary,
             'sections' => $sections
@@ -50,15 +48,6 @@ class PDFAnalyzerService
         return $document;
     }
 
-    private function extractDateFromFilename($filename)
-    {
-        if (preg_match('/(\d{4}[-_]\d{2}[-_]\d{2})/', $filename, $matches)) {
-            return Carbon::parse(str_replace('_', '-', $matches[1]));
-        }
-        
-        return Carbon::now();
-    }
-    
     private function extractSections($text)
     {
         $sections = [
@@ -181,57 +170,4 @@ class PDFAnalyzerService
         return $response['response'];
     }
     
-    public function generateCrossSummary($sectionType, $months)
-    {
-        $startDate = Carbon::now()->subMonths($months);
-        
-        $sections = PdfSection::with(['pdfDocument' => function($query) {
-                $query->select('id', 'filename', 'slack_date');
-            }])
-            ->where('section_type', $sectionType)
-            ->whereHas('pdfDocument', function($query) use ($startDate) {
-                $query->where('slack_date', '>=', $startDate);
-            })
-            ->orderBy('created_at')
-            ->get();
-        
-        $allContent = $sections->pluck('content')->implode("\n\n");
-        
-        $timeline = [];
-        foreach ($sections as $section) {
-            $timeline[] = [
-                'date' => $section->pdfDocument->slack_date->format('Y-m-d'),
-                'summary' => $section->summary,
-                'document_id' => $section->pdf_document_id
-            ];
-        }
-        
-        $trendAnalysis = $this->analyzeTrends($allContent, $timeline);
-        
-        return [
-            'sections' => $sections,
-            'timeline' => $timeline,
-            'trend_analysis' => $trendAnalysis,
-            'overall_summary' => $this->generateSummary($allContent)
-        ];
-    }
-
-    private function analyzeTrends($content, $timeline)
-    {
-        if (empty($content)) {
-            return '分析するデータがありません。';
-        }
-
-        try {
-            $timelineText = collect($timeline)->map(function($item) {
-                return $item['date'] . ': ' . $item['summary'];
-            })->implode("\n");
-
-            $prompt = "時系列データから傾向とパターンを分析し、重要な変化や継続的な課題を特定してください。\n\n以下の時系列データから傾向を分析してください:\n\n" . $timelineText;
-            
-            return $this->callOllamaAPI($prompt);
-        } catch (\Exception $e) {
-            return '傾向分析の生成に失敗しました: ' . $e->getMessage();
-        }
-    }
 }

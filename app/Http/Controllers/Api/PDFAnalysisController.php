@@ -23,7 +23,19 @@ class PDFAnalysisController extends Controller
         $perPage = $request->get('per_page', 5);
         $perPage = min($perPage, 20); // 最大20件まで
 
-        $documents = PdfDocument::latest('slack_date')
+        $query = PdfDocument::query();
+
+        // 検索キーワードがある場合
+        if ($request->filled('search')) {
+            $keyword = $request->get('search');
+            $query->where(function($q) use ($keyword) {
+                $q->where('raw_content', 'LIKE', "%{$keyword}%")
+                  ->orWhere('summary', 'LIKE', "%{$keyword}%")
+                  ->orWhere('filename', 'LIKE', "%{$keyword}%");
+            });
+        }
+
+        $documents = $query->latest('slack_date')
             ->select('id', 'filename', 'slack_date', 'summary', 'created_at')
             ->paginate($perPage);
 
@@ -61,26 +73,6 @@ class PDFAnalysisController extends Controller
             'message' => count($documents) . '件のPDFファイルを正常に処理しました',
             'documents' => $documents
         ], 201);
-    }
-    
-    public function crossSummary(Request $request)
-    {
-        $request->validate([
-            'section' => 'required|string|in:business_execution,skill_development,ai_utilization,self_appeal,challenges_next_week,self_evaluation',
-            'months' => 'integer|min:1|max:12'
-        ]);
-        
-        $sectionType = $request->get('section');
-        $months = $request->get('months', 6);
-        
-        try {
-            $summary = $this->pdfAnalyzer->generateCrossSummary($sectionType, $months);
-            return response()->json($summary);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => '横断的要約の生成中にエラーが発生しました: ' . $e->getMessage()
-            ], 500);
-        }
     }
     
     public function search(Request $request)

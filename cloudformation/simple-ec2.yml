@@ -1,0 +1,145 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "PDF Analyzer Simple EC2 Stack"
+
+Parameters:
+  ProjectName:
+    Default: "pdf-analyzer"
+    Type: "String"
+  EnvType:
+    Description: "Select Environment Type."
+    Type: "String"
+    Default: "dev"
+    AllowedValues:
+      - "dev"
+      - "prod"
+  InstanceType:
+    Description: "EC2 instance type"
+    Type: "String"
+    Default: "t3.medium"
+    AllowedValues:
+      - "t3.small"
+      - "t3.medium"
+      - "t3.large"
+  KeyPairName:
+    Description: "EC2 Key Pair for SSH access"
+    Type: "AWS::EC2::KeyPair::KeyName"
+  SSHAllowedIP:
+    Description: "Your IP address for SSH access (check at https://checkip.amazonaws.com)"
+    Type: "String"
+    Default: "0.0.0.0/0"
+    ConstraintDescription: "Must be a valid IP CIDR range (e.g., 123.45.67.89/32 for single IP)"
+
+Resources:
+  # Security Group
+  WebServerSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupName: !Sub "${ProjectName}-${EnvType}-sg"
+      GroupDescription: "Security group for PDF Analyzer web server"
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHAllowedIP
+          Description: "SSH access from allowed IP"
+        - IpProtocol: "tcp"
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+          Description: "HTTP access"
+        - IpProtocol: "tcp"
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+          Description: "HTTPS access"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${ProjectName}-${EnvType}-sg"
+        - Key: "Project"
+          Value: !Ref ProjectName
+        - Key: "Environment"
+          Value: !Ref EnvType
+
+  # Elastic IP
+  ElasticIP:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      InstanceId: !Ref EC2Instance
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${ProjectName}-${EnvType}-eip"
+        - Key: "Project"
+          Value: !Ref ProjectName
+        - Key: "Environment"
+          Value: !Ref EnvType
+
+  # EC2 Instance
+  EC2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-0d52744d6551d851e"  # Ubuntu 22.04 LTS (ap-northeast-1)
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update
+          apt-get install -y docker.io docker-compose git
+          systemctl start docker
+          systemctl enable docker
+          usermod -aG docker ubuntu
+
+          # Create project directory
+          mkdir -p /home/ubuntu/pdf-analyzer
+          chown ubuntu:ubuntu /home/ubuntu/pdf-analyzer
+
+          # Install AWS CLI
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          ./aws/install
+
+          # Create deployment script
+          cat > /home/ubuntu/deploy.sh << 'EOF'
+          #!/bin/bash
+          cd /home/ubuntu/pdf-analyzer
+          git pull origin main
+          docker-compose down
+          docker-compose up -d --build
+          EOF
+          chmod +x /home/ubuntu/deploy.sh
+          chown ubuntu:ubuntu /home/ubuntu/deploy.sh
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${ProjectName}-${EnvType}-instance"
+        - Key: "Project"
+          Value: !Ref ProjectName
+        - Key: "Environment"
+          Value: !Ref EnvType
+
+Outputs:
+  InstanceId:
+    Description: "EC2 Instance ID"
+    Value: !Ref EC2Instance
+    Export:
+      Name: !Sub "${ProjectName}-${EnvType}-instance-id"
+
+  PublicIP:
+    Description: "Elastic IP address"
+    Value: !Ref ElasticIP
+    Export:
+      Name: !Sub "${ProjectName}-${EnvType}-public-ip"
+
+  SSHCommand:
+    Description: "SSH command to connect to the instance"
+    Value: !Sub "ssh -i ~/.ssh/${KeyPairName}.pem ubuntu@${ElasticIP}"
+    Export:
+      Name: !Sub "${ProjectName}-${EnvType}-ssh-command"
+
+  WebsiteURL:
+    Description: "Website URL"
+    Value: !Sub "http://${ElasticIP}"
+    Export:
+      Name: !Sub "${ProjectName}-${EnvType}-website-url"

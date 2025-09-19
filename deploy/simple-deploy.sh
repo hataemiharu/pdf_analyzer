@@ -145,11 +145,11 @@ set -e
 # Clone or update repository
 if [ ! -d "/home/ubuntu/pdf-analyzer" ]; then
     echo "Cloning repository..."
-    git clone https://github.com/your-username/pdf-analyzer.git /home/ubuntu/pdf-analyzer
+    git clone https://github.com/hataemiharu/pdf_analyzer.git /home/ubuntu/pdf-analyzer
 else
     echo "Updating repository..."
     cd /home/ubuntu/pdf-analyzer
-    git pull origin main
+    git pull origin master
 fi
 
 cd /home/ubuntu/pdf-analyzer

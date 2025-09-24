@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { List, DateField } from '@refinedev/antd';
-import { Table, Space, Button, Tag, Empty, Card, Typography, Divider } from 'antd';
+import { Table, Space, Button, Tag, Empty, Card, Input, Alert, message } from 'antd';
 import { Link } from 'react-router-dom';
-import { UploadOutlined, EyeOutlined, DeleteOutlined, TableOutlined } from '@ant-design/icons';
+import { UploadOutlined, EyeOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import { useDelete } from '@refinedev/core';
 import axios from 'axios';
+import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 
 interface IPdfDocument {
   id: number;
@@ -14,47 +15,55 @@ interface IPdfDocument {
   created_at: string;
 }
 
-interface ISectionSummary {
-  id: number;
-  date: string;
-  filename: string;
-  sections: {
-    business_execution: string;
-    skill_development: string;
-    ai_utilization: string;
-    self_appeal: string;
-    challenges_next_week: string;
-    self_evaluation: string;
-  };
-}
 
-const { Title } = Typography;
 
 export const PdfList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<IPdfDocument[]>([]);
-  const [selectedRowKeys, setSelectedRowKeys] = useState<number[]>([]);
-  const [sectionSummary, setSectionSummary] = useState<ISectionSummary[]>([]);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [showSummaryTable, setShowSummaryTable] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [pageSize] = useState(5);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [inputKeyword, setInputKeyword] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<IPdfDocument | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const { mutate: deletePdf } = useDelete();
 
+  // テキストハイライト用のヘルパー関数
+  const highlightText = (text: string, keyword: string) => {
+    if (!keyword || !text) return text;
+
+    const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <mark key={index} style={{ backgroundColor: '#ffeb3b', padding: '2px 4px', borderRadius: '2px' }}>
+          {part}
+        </mark>
+      ) : part
+    );
+  };
+
   useEffect(() => {
-    fetchData(currentPage);
+    fetchData(currentPage, searchKeyword);
   }, [currentPage]);
 
-  const fetchData = async (page: number) => {
+  const fetchData = async (page: number, search: string = '') => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/pdf', {
-        params: {
-          page,
-          per_page: pageSize
-        }
-      });
+      const params: any = {
+        page,
+        per_page: pageSize
+      };
+
+      if (search) {
+        params.search = search;
+      }
+
+      const response = await axios.get('/api/pdf', { params });
       setData(response.data.data || []);
       setTotalItems(response.data.total || 0);
     } catch (error) {
@@ -66,49 +75,64 @@ export const PdfList: React.FC = () => {
     }
   };
 
-  const fetchSectionSummary = async (pdfIds: number[]) => {
-    if (pdfIds.length === 0) {
-      setSectionSummary([]);
-      return;
-    }
-    
-    try {
-      setSummaryLoading(true);
-      const response = await axios.post('/api/pdf/section-summary', {
-        pdf_ids: pdfIds
-      });
-      setSectionSummary(response.data);
-    } catch (error) {
-      console.error('Failed to fetch section summary:', error);
-      setSectionSummary([]);
-    } finally {
-      setSummaryLoading(false);
-    }
-  };
-
-  const handleSelectChange = (selectedKeys: React.Key[]) => {
-    const keys = selectedKeys as number[];
-    setSelectedRowKeys(keys);
-    setShowSummaryTable(false);
-    setSectionSummary([]);
-  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    setSelectedRowKeys([]);
-    setShowSummaryTable(false);
-    setSectionSummary([]);
   };
 
-  const handleShowSectionSummary = async () => {
-    await fetchSectionSummary(selectedRowKeys);
-    setShowSummaryTable(true);
+  const handleSearch = async (keyword: string) => {
+    setSearchLoading(true);
+    setSearchKeyword(keyword);
+    setCurrentPage(1);
+
+    try {
+      await fetchData(1, keyword);
+    } finally {
+      setSearchLoading(false);
+    }
   };
 
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: handleSelectChange,
+  const handleClearSearch = async () => {
+    setSearchKeyword('');
+    setInputKeyword('');
+    setCurrentPage(1);
+    await fetchData(1, '');
   };
+
+  const handleDeleteClick = (record: IPdfDocument) => {
+    setDeleteTarget(record);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget) return;
+
+    setDeleteLoading(true);
+    deletePdf({
+      resource: 'pdf',
+      id: deleteTarget.id,
+    }, {
+      onSuccess: () => {
+        message.success('削除しました');
+        fetchData(currentPage, searchKeyword);
+        setDeleteModalOpen(false);
+        setDeleteTarget(null);
+      },
+      onError: (error) => {
+        message.error('削除に失敗しました');
+        console.error('Delete error:', error);
+      },
+      onSettled: () => {
+        setDeleteLoading(false);
+      }
+    });
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false);
+    setDeleteTarget(null);
+  };
+
 
   return (
     <List
@@ -121,25 +145,39 @@ export const PdfList: React.FC = () => {
         </Link>
       }
     >
-      {selectedRowKeys.length > 0 && (
-        <div style={{ marginBottom: 16, textAlign: 'center' }}>
-          <Button
-            type="primary"
-            icon={<TableOutlined />}
-            onClick={handleShowSectionSummary}
-            loading={summaryLoading}
-            size="large"
-          >
-            選択されたPDF（{selectedRowKeys.length}件）のセクション別要約を表示
-          </Button>
-        </div>
-      )}
+      {/* 検索ボックス */}
+      <Card style={{ marginBottom: 16 }}>
+        <Input.Search
+          placeholder="キーワードで検索（ファイル名、要約、内容から検索）"
+          enterButton={
+            <Button type="primary" icon={<SearchOutlined />} loading={searchLoading}>
+              検索
+            </Button>
+          }
+          size="large"
+          value={inputKeyword}
+          onChange={(e) => setInputKeyword(e.target.value)}
+          onSearch={handleSearch}
+          allowClear
+          onClear={handleClearSearch}
+        />
+
+        {/* 検索結果の表示 */}
+        {searchKeyword && (
+          <Alert
+            message={`「${searchKeyword}」の検索結果: ${totalItems}件`}
+            type="info"
+            style={{ marginTop: 12 }}
+            showIcon
+            closable={false}
+          />
+        )}
+      </Card>
 
       <Table
         dataSource={data}
         loading={loading}
         rowKey="id"
-        rowSelection={rowSelection}
         pagination={{
           current: currentPage,
           pageSize: pageSize,
@@ -151,20 +189,37 @@ export const PdfList: React.FC = () => {
         locale={{
           emptyText: (
             <Empty
-              description="まだPDFファイルがアップロードされていません"
+              description={
+                searchKeyword
+                  ? `「${searchKeyword}」に一致する結果が見つかりませんでした`
+                  : "まだPDFファイルがアップロードされていません"
+              }
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             >
-              <Link to="/pdf/upload">
-                <Button type="primary" icon={<UploadOutlined />}>
-                  最初のPDFをアップロード
-                </Button>
-              </Link>
+              {searchKeyword ? (
+                <Space>
+                  <Button onClick={handleClearSearch}>
+                    検索をクリア
+                  </Button>
+                  <Link to="/pdf/upload">
+                    <Button type="primary" icon={<UploadOutlined />}>
+                      PDFをアップロード
+                    </Button>
+                  </Link>
+                </Space>
+              ) : (
+                <Link to="/pdf/upload">
+                  <Button type="primary" icon={<UploadOutlined />}>
+                    最初のPDFをアップロード
+                  </Button>
+                </Link>
+              )}
             </Empty>
           )
         }}
       >
         <Table.Column
-          title="日付"
+          title="アップロード日"
           dataIndex="slack_date"
           render={(value) => value ? <DateField value={value} format="YYYY/MM/DD" /> : '-'}
         />
@@ -172,7 +227,9 @@ export const PdfList: React.FC = () => {
           title="ファイル名"
           dataIndex="filename"
           render={(value) => (
-            <Tag color="blue">{value}</Tag>
+            <Tag color="blue">
+              {searchKeyword ? highlightText(value, searchKeyword) : value}
+            </Tag>
           )}
         />
         <Table.Column
@@ -195,15 +252,10 @@ export const PdfList: React.FC = () => {
                 lineHeight: '1.4',
                 margin: 0
               }}>
-                {value}
+                {searchKeyword ? highlightText(value, searchKeyword) : value}
               </pre>
             </div>
           )}
-        />
-        <Table.Column
-          title="アップロード日時"
-          dataIndex="created_at"
-          render={(value) => value ? <DateField value={value} format="YYYY/MM/DD HH:mm" /> : '-'}
         />
         <Table.Column
           title="アクション"
@@ -219,18 +271,7 @@ export const PdfList: React.FC = () => {
                 danger
                 icon={<DeleteOutlined />}
                 size="small"
-                onClick={() => {
-                  if (confirm('このPDFを削除してもよろしいですか？')) {
-                    deletePdf({
-                      resource: 'pdf',
-                      id: record.id,
-                    }, {
-                      onSuccess: () => {
-                        fetchData(currentPage);
-                      }
-                    });
-                  }
-                }}
+                onClick={() => handleDeleteClick(record)}
               >
                 削除
               </Button>
@@ -238,115 +279,14 @@ export const PdfList: React.FC = () => {
           )}
         />
       </Table>
-      
 
-      {showSummaryTable && sectionSummary.length > 0 && (
-        <>
-          <Divider />
-          <Card
-            title={
-              <Space>
-                <TableOutlined />
-                <Title level={4} style={{ margin: 0 }}>選択されたPDFのセクション別要約</Title>
-              </Space>
-            }
-            style={{ marginTop: 24 }}
-            extra={
-              <Button
-                onClick={() => setShowSummaryTable(false)}
-                size="small"
-              >
-                閉じる
-              </Button>
-            }
-          >
-            <Table
-              dataSource={sectionSummary}
-              loading={summaryLoading}
-              rowKey="id"
-              pagination={false}
-              scroll={{ x: 1500 }}
-            >
-              <Table.Column
-                title="日付"
-                dataIndex="date"
-                width={120}
-                fixed="left"
-                render={(value) => value ? <DateField value={value} format="YYYY/MM/DD" /> : '-'}
-              />
-              <Table.Column
-                title="ファイル名"
-                dataIndex="filename"
-                width={200}
-                fixed="left"
-                render={(value) => (
-                  <Tag color="blue" style={{ fontSize: '12px' }}>{value}</Tag>
-                )}
-              />
-              <Table.Column
-                title="【1】業務遂行"
-                dataIndex={['sections', 'business_execution']}
-                width={300}
-                render={(value) => (
-                  <div style={{ maxWidth: 280, fontSize: '12px', lineHeight: '1.4' }}>
-                    {value || '該当なし'}
-                  </div>
-                )}
-              />
-              <Table.Column
-                title="【2】能力開発"
-                dataIndex={['sections', 'skill_development']}
-                width={300}
-                render={(value) => (
-                  <div style={{ maxWidth: 280, fontSize: '12px', lineHeight: '1.4' }}>
-                    {value || '該当なし'}
-                  </div>
-                )}
-              />
-              <Table.Column
-                title="【3】生成AI活用"
-                dataIndex={['sections', 'ai_utilization']}
-                width={300}
-                render={(value) => (
-                  <div style={{ maxWidth: 280, fontSize: '12px', lineHeight: '1.4' }}>
-                    {value || '該当なし'}
-                  </div>
-                )}
-              />
-              <Table.Column
-                title="【4】自由アピール"
-                dataIndex={['sections', 'self_appeal']}
-                width={300}
-                render={(value) => (
-                  <div style={{ maxWidth: 280, fontSize: '12px', lineHeight: '1.4' }}>
-                    {value || '該当なし'}
-                  </div>
-                )}
-              />
-              <Table.Column
-                title="■ 今週できなかったこと・来週以降チャレンジしたいこと"
-                dataIndex={['sections', 'challenges_next_week']}
-                width={400}
-                render={(value) => (
-                  <div style={{ maxWidth: 380, fontSize: '12px', lineHeight: '1.4' }}>
-                    {value || '該当なし'}
-                  </div>
-                )}
-              />
-              <Table.Column
-                title="■ 業績目標や行動に対する自己評価・所感"
-                dataIndex={['sections', 'self_evaluation']}
-                width={400}
-                render={(value) => (
-                  <div style={{ maxWidth: 380, fontSize: '12px', lineHeight: '1.4' }}>
-                    {value || '該当なし'}
-                  </div>
-                )}
-              />
-            </Table>
-          </Card>
-        </>
-      )}
+      <DeleteConfirmModal
+        open={deleteModalOpen}
+        filename={deleteTarget?.filename || ''}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        loading={deleteLoading}
+      />
     </List>
   );
 };

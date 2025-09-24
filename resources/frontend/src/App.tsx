@@ -10,10 +10,23 @@ import '@refinedev/antd/dist/reset.css';
 import { PdfList } from './pages/pdf/list';
 import { PdfShow } from './pages/pdf/show';
 import { PdfUpload } from './pages/pdf/upload';
-import { CrossSummary } from './pages/cross-summary';
 import { Dashboard } from './pages/dashboard';
 
 const API_URL = '/api';
+
+// カスタムnotificationProvider - 削除成功時の自動通知を無効化
+const customNotificationProvider = {
+  ...notificationProvider,
+  open: (params: any) => {
+    // 削除成功時の自動通知をフィルタリング
+    if (params?.message?.includes('Successfully deleted') ||
+        params?.description?.includes('Successfully deleted')) {
+      return;
+    }
+    // その他の通知は表示
+    return notificationProvider.open(params);
+  }
+};
 
 function App() {
   return (
@@ -22,7 +35,7 @@ function App() {
         <AntdApp>
             <Refine
               dataProvider={dataProvider(API_URL)}
-              notificationProvider={notificationProvider}
+              notificationProvider={customNotificationProvider}
               routerProvider={routerProvider}
               resources={[
                 {
@@ -39,13 +52,6 @@ function App() {
                   create: '/pdf/upload',
                   meta: {
                     label: 'PDF管理',
-                  },
-                },
-                {
-                  name: 'cross-summary',
-                  list: '/cross-summary',
-                  meta: {
-                    label: '横断分析',
                   },
                 },
               ]}
@@ -68,7 +74,6 @@ function App() {
                     <Route path="show/:id" element={<PdfShow />} />
                     <Route path="upload" element={<PdfUpload />} />
                   </Route>
-                  <Route path="/cross-summary" element={<CrossSummary />} />
                   <Route path="*" element={<ErrorComponent />} />
                 </Route>
               </Routes>

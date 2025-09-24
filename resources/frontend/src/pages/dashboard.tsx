@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Row, Col, Card, Statistic, List, Typography, Space, Tag, Spin } from 'antd';
-import { FileTextOutlined, CalendarOutlined, UploadOutlined, SearchOutlined } from '@ant-design/icons';
+import { FileTextOutlined, CalendarOutlined, UploadOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -84,18 +84,6 @@ export const Dashboard: React.FC = () => {
           </Link>
         </Col>
         
-        <Col xs={24} sm={12} lg={6}>
-          <Link to="/cross-summary">
-            <Card hoverable>
-              <Statistic
-                title="横断分析"
-                value="分析開始"
-                prefix={<SearchOutlined />}
-                valueStyle={{ fontSize: 20 }}
-              />
-            </Card>
-          </Link>
-        </Col>
         
         <Col xs={24} sm={12} lg={6}>
           <Card>
@@ -166,14 +154,6 @@ export const Dashboard: React.FC = () => {
                   <Space>
                     <FileTextOutlined />
                     <Text>PDF一覧を表示</Text>
-                  </Space>
-                </Card>
-              </Link>
-              <Link to="/cross-summary">
-                <Card hoverable size="small">
-                  <Space>
-                    <SearchOutlined />
-                    <Text>横断的分析を実行</Text>
                   </Space>
                 </Card>
               </Link>

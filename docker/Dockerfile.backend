@@ -36,7 +36,7 @@ RUN chown -R www-data:www-data /var/www/html \
 
 # Copy nginx configuration
 COPY docker/nginx/backend.conf /etc/nginx/sites-available/default
-
+k
 # Copy supervisor configuration
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 

@@ -61,18 +61,6 @@ Resources:
         - Key: "Environment"
           Value: !Ref EnvType
 
-  # Elastic IP
-  ElasticIP:
-    Type: "AWS::EC2::EIP"
-    Properties:
-      InstanceId: !Ref EC2Instance
-      Tags:
-        - Key: "Name"
-          Value: !Sub "${ProjectName}-${EnvType}-eip"
-        - Key: "Project"
-          Value: !Ref ProjectName
-        - Key: "Environment"
-          Value: !Ref EnvType
 
   # EC2 Instance
   EC2Instance:
@@ -127,19 +115,19 @@ Outputs:
       Name: !Sub "${ProjectName}-${EnvType}-instance-id"
 
   PublicIP:
-    Description: "Elastic IP address"
-    Value: !Ref ElasticIP
+    Description: "Instance Public IP address"
+    Value: !GetAtt EC2Instance.PublicIp
     Export:
       Name: !Sub "${ProjectName}-${EnvType}-public-ip"
 
   SSHCommand:
     Description: "SSH command to connect to the instance"
-    Value: !Sub "ssh -i ~/.ssh/${KeyPairName}.pem ubuntu@${ElasticIP}"
+    Value: !Sub "ssh -i ~/.ssh/${KeyPairName}.pem ubuntu@${EC2Instance.PublicIp}"
     Export:
       Name: !Sub "${ProjectName}-${EnvType}-ssh-command"
 
   WebsiteURL:
     Description: "Website URL"
-    Value: !Sub "http://${ElasticIP}"
+    Value: !Sub "http://${EC2Instance.PublicIp}"
     Export:
       Name: !Sub "${ProjectName}-${EnvType}-website-url"

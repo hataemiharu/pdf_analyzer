@@ -41,11 +41,13 @@ delete_stack() {
 
     echo_info "Deleting CloudFormation stack..."
     aws cloudformation delete-stack \
+        --profile dev-internal \
         --stack-name ${PROJECT_NAME}-${ENV_TYPE}-simple \
         --region ${AWS_REGION}
 
     echo_info "Waiting for deletion to complete..."
     aws cloudformation wait stack-delete-complete \
+        --profile dev-internal \
         --stack-name ${PROJECT_NAME}-${ENV_TYPE}-simple \
         --region ${AWS_REGION} \
         2>/dev/null || true
@@ -59,6 +61,7 @@ stop_instance() {
     echo_info "Stopping EC2 instance..."
 
     INSTANCE_ID=$(aws cloudformation describe-stacks \
+        --profile dev-internal \
         --stack-name ${PROJECT_NAME}-${ENV_TYPE}-simple \
         --region ${AWS_REGION} \
         --query 'Stacks[0].Outputs[?OutputKey==`InstanceId`].OutputValue' \
@@ -70,6 +73,7 @@ stop_instance() {
     fi
 
     aws ec2 stop-instances \
+        --profile dev-internal \
         --instance-ids ${INSTANCE_ID} \
         --region ${AWS_REGION}
 
@@ -83,6 +87,7 @@ start_instance() {
     echo_info "Starting EC2 instance..."
 
     INSTANCE_ID=$(aws cloudformation describe-stacks \
+        --profile dev-internal \
         --stack-name ${PROJECT_NAME}-${ENV_TYPE}-simple \
         --region ${AWS_REGION} \
         --query 'Stacks[0].Outputs[?OutputKey==`InstanceId`].OutputValue' \
@@ -94,6 +99,7 @@ start_instance() {
     fi
 
     aws ec2 start-instances \
+        --profile dev-internal \
         --instance-ids ${INSTANCE_ID} \
         --region ${AWS_REGION}
 
@@ -102,11 +108,13 @@ start_instance() {
     # Wait for instance to be running
     echo_info "Waiting for instance to be ready..."
     aws ec2 wait instance-running \
+        --profile dev-internal \
         --instance-ids ${INSTANCE_ID} \
         --region ${AWS_REGION}
 
     # Get public IP
     PUBLIC_IP=$(aws cloudformation describe-stacks \
+        --profile dev-internal \
         --stack-name ${PROJECT_NAME}-${ENV_TYPE}-simple \
         --region ${AWS_REGION} \
         --query 'Stacks[0].Outputs[?OutputKey==`PublicIP`].OutputValue' \
@@ -122,6 +130,7 @@ status_check() {
     echo_info "Checking instance status..."
 
     INSTANCE_ID=$(aws cloudformation describe-stacks \
+        --profile dev-internal \
         --stack-name ${PROJECT_NAME}-${ENV_TYPE}-simple \
         --region ${AWS_REGION} \
         --query 'Stacks[0].Outputs[?OutputKey==`InstanceId`].OutputValue' \
@@ -133,12 +142,14 @@ status_check() {
     fi
 
     STATE=$(aws ec2 describe-instances \
+        --profile dev-internal \
         --instance-ids ${INSTANCE_ID} \
         --region ${AWS_REGION} \
         --query 'Reservations[0].Instances[0].State.Name' \
         --output text)
 
     PUBLIC_IP=$(aws cloudformation describe-stacks \
+        --profile dev-internal \
         --stack-name ${PROJECT_NAME}-${ENV_TYPE}-simple \
         --region ${AWS_REGION} \
         --query 'Stacks[0].Outputs[?OutputKey==`PublicIP`].OutputValue' \

@@ -37,14 +37,14 @@ check_prerequisites() {
         exit 1
     fi
 
-    # Check AWS credentials
-    if ! aws sts get-caller-identity &> /dev/null; then
-        echo_error "AWS credentials not configured"
+    # Check AWS credentials (using dev-internal profile)
+    if ! aws sts get-caller-identity --profile dev-internal &> /dev/null; then
+        echo_error "AWS credentials not configured for dev-internal profile"
         exit 1
     fi
 
     # Check if key pair exists
-    if ! aws ec2 describe-key-pairs --key-names ${KEY_PAIR_NAME} --region ${AWS_REGION} &> /dev/null; then
+    if ! aws ec2 describe-key-pairs --key-names ${KEY_PAIR_NAME} --region ${AWS_REGION} --profile dev-internal &> /dev/null; then
         echo_warn "Key pair '${KEY_PAIR_NAME}' not found. Creating..."
         create_key_pair
     fi
@@ -61,7 +61,8 @@ create_key_pair() {
         --key-name ${KEY_PAIR_NAME} \
         --query 'KeyMaterial' \
         --output text \
-        --region ${AWS_REGION} > ~/.ssh/${KEY_PAIR_NAME}.pem
+        --region ${AWS_REGION} \
+        --profile dev-internal > ~/.ssh/${KEY_PAIR_NAME}.pem
 
     # Set correct permissions
     chmod 400 ~/.ssh/${KEY_PAIR_NAME}.pem
@@ -89,6 +90,7 @@ deploy_infrastructure() {
     fi
 
     aws cloudformation deploy \
+        --profile dev-internal \
         --template-file cloudformation/simple-ec2.yml \
         --stack-name ${PROJECT_NAME}-${ENV_TYPE}-simple \
         --parameter-overrides \
@@ -110,6 +112,7 @@ get_deployment_info() {
     PUBLIC_IP=$(aws cloudformation describe-stacks \
         --stack-name ${PROJECT_NAME}-${ENV_TYPE}-simple \
         --region ${AWS_REGION} \
+        --profile dev-internal \
         --query 'Stacks[0].Outputs[?OutputKey==`PublicIP`].OutputValue' \
         --output text)
 
@@ -117,6 +120,7 @@ get_deployment_info() {
     SSH_COMMAND=$(aws cloudformation describe-stacks \
         --stack-name ${PROJECT_NAME}-${ENV_TYPE}-simple \
         --region ${AWS_REGION} \
+        --profile dev-internal \
         --query 'Stacks[0].Outputs[?OutputKey==`SSHCommand`].OutputValue' \
         --output text)
 

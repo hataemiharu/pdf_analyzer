@@ -84,28 +84,28 @@ aws cloudformation deploy \
 #### ECRにログイン
 ```bash
 aws ecr get-login-password --region ap-northeast-1 | \
-docker login --username AWS --password-stdin <account-id>.dkr.ecr.ap-northeast-1.amazonaws.com
+docker login --username AWS --password-stdin 662699157964.dkr.ecr.ap-northeast-1.amazonaws.com
 ```
 
 #### バックエンドイメージ
 ```bash
 docker build -f docker/Dockerfile.backend -t pdf-analyzer-dev-backend-repo:latest .
-docker tag pdf-analyzer-dev-backend-repo:latest <account-id>.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-backend-repo:latest
-docker push <account-id>.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-backend-repo:latest
+docker tag pdf-analyzer-dev-backend-repo:latest 662699157964.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-backend-repo:latest
+docker push 662699157964.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-backend-repo:latest
 ```
 
 #### フロントエンドイメージ
 ```bash
 docker build -f docker/Dockerfile.frontend -t pdf-analyzer-dev-frontend-repo:latest .
-docker tag pdf-analyzer-dev-frontend-repo:latest <account-id>.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-frontend-repo:latest
-docker push <account-id>.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-frontend-repo:latest
+docker tag pdf-analyzer-dev-frontend-repo:latest 662699157964.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-frontend-repo:latest
+docker push 662699157964.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-frontend-repo:latest
 ```
 
 #### Nginxイメージ
 ```bash
 docker build -f docker/Dockerfile.nginx -t pdf-analyzer-dev-nginx-repo:latest .
-docker tag pdf-analyzer-dev-nginx-repo:latest <account-id>.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-nginx-repo:latest
-docker push <account-id>.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-nginx-repo:latest
+docker tag pdf-analyzer-dev-nginx-repo:latest 662699157964.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-nginx-repo:latest
+docker push 662699157964.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-nginx-repo:latest
 ```
 
 ### 3. ECSスタックのデプロイ
@@ -117,9 +117,9 @@ aws cloudformation deploy \
   --parameter-overrides \
     ProjectName=pdf-analyzer \
     EnvType=dev \
-    BackendImageURI=<account-id>.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-backend-repo:latest \
-    FrontendImageURI=<account-id>.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-frontend-repo:latest \
-    NginxImageURI=<account-id>.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-nginx-repo:latest \
+    BackendImageURI=662699157964.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-backend-repo:latest \
+    FrontendImageURI=662699157964.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-frontend-repo:latest \
+    NginxImageURI=662699157964.dkr.ecr.ap-northeast-1.amazonaws.com/pdf-analyzer-dev-nginx-repo:latest \
     DBPassword=your-secure-password \
     OpenAIAPIKey=your-openai-api-key \
   --capabilities CAPABILITY_IAM \

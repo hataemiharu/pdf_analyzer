@@ -146,7 +146,7 @@ export const PdfList: React.FC = () => {
       }
     >
       {/* 検索ボックス */}
-      <Card style={{ marginBottom: 16 }}>
+      <Card style={{ marginBottom: 16 }} variant="outlined">
         <Input.Search
           placeholder="キーワードで検索（ファイル名、要約、内容から検索）"
           enterButton={

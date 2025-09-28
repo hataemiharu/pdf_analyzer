@@ -31,6 +31,45 @@ Parameters:
     ConstraintDescription: "Must be a valid IP CIDR range (e.g., 123.45.67.89/32 for single IP)"
 
 Resources:
+  # IAM Role for EC2 to access Parameter Store
+  EC2InstanceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "${ProjectName}-${EnvType}-ec2-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "ec2.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "ParameterStoreReadPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:GetParameters"
+                  - "ssm:GetParametersByPath"
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/pdf-analyzer/${EnvType}/*"
+      Tags:
+        - Key: "Name"
+          Value: !Sub "${ProjectName}-${EnvType}-role"
+        - Key: "Project"
+          Value: !Ref ProjectName
+        - Key: "Environment"
+          Value: !Ref EnvType
+
+  # Instance Profile for EC2
+  EC2InstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      InstanceProfileName: !Sub "${ProjectName}-${EnvType}-instance-profile"
+      Roles:
+        - !Ref EC2InstanceRole
+
   # Security Group
   WebServerSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
@@ -71,6 +110,7 @@ Resources:
       KeyName: !Ref KeyPairName
       SecurityGroupIds:
         - !Ref WebServerSecurityGroup
+      IamInstanceProfile: !Ref EC2InstanceProfile
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
@@ -94,8 +134,15 @@ Resources:
           #!/bin/bash
           cd /home/ubuntu/pdf-analyzer
           git pull origin main
-          docker-compose down
-          docker-compose up -d --build
+
+          # Get environment variables from Parameter Store
+          export GEMINI_API_KEY=$(aws ssm get-parameter --name "/pdf-analyzer/prod/GEMINI_API_KEY" --with-decryption --region ap-northeast-1 --query 'Parameter.Value' --output text)
+
+          # Stop containers
+          docker-compose -f docker-compose.prod.yml down
+
+          # Start containers with environment variables
+          docker-compose -f docker-compose.prod.yml up -d --build
           EOF
           chmod +x /home/ubuntu/deploy.sh
           chown ubuntu:ubuntu /home/ubuntu/deploy.sh

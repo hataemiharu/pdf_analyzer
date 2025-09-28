@@ -6,14 +6,17 @@ use App\Models\PdfDocument;
 use App\Models\PdfSection;
 use Smalot\PdfParser\Parser;
 use Carbon\Carbon;
+use App\Services\GeminiSummaryService;
 
 class PDFAnalyzerService
 {
     private $parser;
+    private $summaryService;
     
     public function __construct()
     {
         $this->parser = new Parser();
+        $this->summaryService = new GeminiSummaryService();
     }
     
     public function processAndStore($uploadedFile)
@@ -94,80 +97,7 @@ class PDFAnalyzerService
     
     private function generateSummary($text)
     {
-        try {
-            $prompt = "あなたはSlackの週報を要約する専門家です。以下の形式で要約してください：
-
-■ 今週できたこと・達成できたこと
-【1】業務遂行
-→ 主な業務の成果や完了したタスクを記載
-
-【2】能力開発
-→ 学習や研修、スキル向上に関する内容を記載
-
-【3】生成AI活用
-→ AI活用の取り組みや成果を記載
-
-【4】自由アピール
-→ その他のアピールポイントを記載
-
-■ 今週できなかったこと・来週以降チャレンジしたいこと
-→ 未完了のタスクや今後の課題を記載
-
-■ 業績目標や行動に対する自己評価・所感
-→ 全体的な評価や感想を記載
-
-各項目は改行で区切り、内容は簡潔にまとめてください。該当する内容がない項目は「特になし」と記載してください。
-
-以下のテキストを要約してください：
-
-" . mb_substr($text, 0, 3000);
-
-            $response = $this->callOllamaAPI($prompt);
-            
-            return $response;
-        } catch (\Exception $e) {
-            return 'AI要約の生成に失敗しました: ' . $e->getMessage();
-        }
-    }
-    
-    private function callOllamaAPI($prompt)
-    {
-        $url = 'http://localhost:11434/api/generate';
-        $data = [
-            'model' => 'llama3.2:3b',
-            'prompt' => $prompt,
-            'stream' => false
-        ];
-
-        $options = [
-            'http' => [
-                'header'  => "Content-type: application/json\r\n",
-                'method'  => 'POST',
-                'content' => json_encode($data),
-                'timeout' => 300
-            ],
-        ];
-
-        $context  = stream_context_create($options);
-
-        try {
-            $result = file_get_contents($url, false, $context);
-
-            if ($result === FALSE) {
-                throw new \Exception('Ollama API request failed');
-            }
-        } catch (\Exception $e) {
-            // Ollamaが利用できない場合はデフォルトの要約を返す
-            throw new \Exception('Ollama server is not available. Please start Ollama server or use manual summary.');
-        }
-
-        $response = json_decode($result, true);
-        
-        if (!isset($response['response'])) {
-            throw new \Exception('Invalid response from Ollama API');
-        }
-
-        return $response['response'];
+        return $this->summaryService->generateSummary($text);
     }
     
 }

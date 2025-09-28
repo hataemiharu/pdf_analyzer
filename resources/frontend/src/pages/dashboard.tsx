@@ -71,7 +71,7 @@ export const Dashboard: React.FC = () => {
       
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card variant="outlined">
             <Statistic
               title="総PDF数"
               value={stats?.total_documents || 0}
@@ -82,7 +82,7 @@ export const Dashboard: React.FC = () => {
         
         <Col xs={24} sm={12} lg={6}>
           <Link to="/pdf/upload">
-            <Card hoverable>
+            <Card hoverable variant="outlined">
               <Statistic
                 title="PDFアップロード"
                 value="新規追加"
@@ -95,7 +95,7 @@ export const Dashboard: React.FC = () => {
         
         
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card variant="outlined">
             <Statistic
               title="今月の処理数"
               value={stats?.monthly_stats?.[0]?.count || 0}
@@ -107,7 +107,7 @@ export const Dashboard: React.FC = () => {
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} lg={24}>
-          <Card title="最近アップロードされたPDF">
+          <Card title="最近アップロードされたPDF" variant="outlined">
             <List
               itemLayout="horizontal"
               dataSource={stats?.recent_documents || []}
@@ -148,10 +148,10 @@ export const Dashboard: React.FC = () => {
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} lg={12}>
-          <Card title="クイックアクション">
+          <Card title="クイックアクション" variant="outlined">
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
               <Link to="/pdf/upload">
-                <Card hoverable size="small">
+                <Card hoverable size="small" variant="outlined">
                   <Space>
                     <UploadOutlined />
                     <Text>新しいPDFをアップロード</Text>
@@ -159,7 +159,7 @@ export const Dashboard: React.FC = () => {
                 </Card>
               </Link>
               <Link to="/pdf">
-                <Card hoverable size="small">
+                <Card hoverable size="small" variant="outlined">
                   <Space>
                     <FileTextOutlined />
                     <Text>PDF一覧を表示</Text>
@@ -171,7 +171,7 @@ export const Dashboard: React.FC = () => {
         </Col>
         
         <Col xs={24} lg={12}>
-          <Card title="システム情報">
+          <Card title="システム情報" variant="outlined">
             <Space direction="vertical" size="small">
               <Text>PDFアナライザー v1.0.0</Text>
               <Text type="secondary">Slack週報の管理と分析を効率化</Text>

@@ -51,7 +51,7 @@ export const PdfShow: React.FC = () => {
   return (
     <Show title={`PDF詳細: ${record.filename}`}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Card>
+        <Card variant="outlined">
           <Space>
             <FileTextOutlined />
             <Text strong>ファイル名:</Text>
@@ -71,7 +71,7 @@ export const PdfShow: React.FC = () => {
           </Space>
         </Card>
 
-        <Card title="要約">
+        <Card title="要約" variant="outlined">
           <Paragraph>
             <pre style={{
               whiteSpace: 'pre-wrap',
@@ -84,7 +84,7 @@ export const PdfShow: React.FC = () => {
           </Paragraph>
         </Card>
 
-        <Card title="元のテキスト" extra={<Tag>全文</Tag>}>
+        <Card title="元のテキスト" extra={<Tag>全文</Tag>} variant="outlined">
           <div style={{ maxHeight: 400, overflow: 'auto' }}>
             <Paragraph>
               <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '12px' }}>

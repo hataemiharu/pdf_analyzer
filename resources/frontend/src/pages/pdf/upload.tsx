@@ -100,7 +100,7 @@ export const PdfUpload: React.FC = () => {
       }
     >
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Card>
+        <Card variant="outlined">
           <Dragger {...uploadProps}>
             <p className="ant-upload-drag-icon">
               <InboxOutlined style={{ fontSize: 48, color: '#1890ff' }} />
@@ -116,7 +116,7 @@ export const PdfUpload: React.FC = () => {
         </Card>
 
         {fileList.length > 0 && (
-          <Card title={`選択されたファイル (${fileList.length}件)`}>
+          <Card title={`選択されたファイル (${fileList.length}件)`} variant="outlined">
             <List
               itemLayout="horizontal"
               dataSource={fileList}
@@ -136,7 +136,7 @@ export const PdfUpload: React.FC = () => {
         )}
 
         {uploading && (
-          <Card>
+          <Card variant="outlined">
             <Space direction="vertical" style={{ width: '100%' }}>
               <Text>アップロード中...</Text>
               <Progress percent={uploadProgress} />

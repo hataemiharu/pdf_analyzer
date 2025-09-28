@@ -35,7 +35,7 @@ class PDFAnalysisController extends Controller
             });
         }
 
-        $documents = $query->latest('slack_date')
+        $documents = $query->latest('created_at')
             ->select('id', 'filename', 'slack_date', 'summary', 'created_at')
             ->paginate($perPage);
 

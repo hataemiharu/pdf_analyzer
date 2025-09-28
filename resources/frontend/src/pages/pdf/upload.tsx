@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Create } from '@refinedev/antd';
-import { Upload, Button, message, Card, List, Typography, Space, Progress } from 'antd';
+import { Upload, Button, message, Card, List, Typography, Space, Progress, Breadcrumb } from 'antd';
 import { InboxOutlined, FileTextOutlined, CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import type { UploadFile, UploadProps } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const { Dragger } = Upload;
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 export const PdfUpload: React.FC = () => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -88,7 +88,17 @@ export const PdfUpload: React.FC = () => {
   };
 
   return (
-    <Create title="PDFアップロード">
+    <Create
+      title="PDFアップロード"
+      breadcrumb={
+        <Breadcrumb
+          items={[
+            { title: 'PDF管理' },
+            { title: 'PDFアップロード' }
+          ]}
+        />
+      }
+    >
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <Card>
           <Dragger {...uploadProps}>

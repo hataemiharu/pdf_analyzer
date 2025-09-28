@@ -16,14 +16,14 @@ class GeminiSummaryService
 
     public function generateSummary($text)
     {
-        // 開発環境でOllamaが使える場合
-        if (app()->environment('local') && $this->checkOllamaAvailable()) {
-            return $this->useOllama($text);
-        }
-
-        // Gemini APIを使用
+        // Gemini APIを優先的に使用
         if ($this->apiKey) {
             return $this->useGemini($text);
+        }
+
+        // Gemini APIキーがない場合、開発環境でOllamaが使える場合
+        if (app()->environment('local') && $this->checkOllamaAvailable()) {
+            return $this->useOllama($text);
         }
 
         // APIキーがない場合は簡易要約
@@ -67,7 +67,7 @@ class GeminiSummaryService
         }
 
         try {
-            $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . $this->apiKey;
+            $url = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=' . $this->apiKey;
 
             $response = Http::timeout(30)->post($url, [
                 'contents' => [

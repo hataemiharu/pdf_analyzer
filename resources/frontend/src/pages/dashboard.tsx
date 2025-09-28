@@ -24,6 +24,15 @@ export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<IDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0]; // YYYY-MM-DD形式
+    } catch {
+      return dateString; // フォーマットに失敗した場合は元の文字列を返す
+    }
+  };
+
   useEffect(() => {
     fetchDashboardStats();
   }, []);
@@ -115,7 +124,7 @@ export const Dashboard: React.FC = () => {
                     title={
                       <Space>
                         <Text>{item.filename}</Text>
-                        <Tag color="blue">{item.slack_date}</Tag>
+                        <Tag color="blue">{formatDate(item.slack_date)}</Tag>
                       </Space>
                     }
                     description={

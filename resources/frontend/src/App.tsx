@@ -11,6 +11,7 @@ import { PdfList } from './pages/pdf/list';
 import { PdfShow } from './pages/pdf/show';
 import { PdfUpload } from './pages/pdf/upload';
 import { Dashboard } from './pages/dashboard';
+import { CustomTitle } from './components/CustomTitle';
 
 const API_URL = '/api';
 
@@ -37,6 +38,11 @@ function App() {
               dataProvider={dataProvider(API_URL)}
               notificationProvider={customNotificationProvider}
               routerProvider={routerProvider}
+              options={{
+                projectId: "週次振り返り分析",
+                syncWithLocation: true,
+                warnWhenUnsavedChanges: true,
+              }}
               resources={[
                 {
                   name: 'dashboard',
@@ -55,15 +61,11 @@ function App() {
                   },
                 },
               ]}
-              options={{
-                syncWithLocation: true,
-                warnWhenUnsavedChanges: true,
-              }}
             >
               <Routes>
                 <Route
                   element={
-                    <ThemedLayout>
+                    <ThemedLayout Title={CustomTitle}>
                       <Outlet />
                     </ThemedLayout>
                   }

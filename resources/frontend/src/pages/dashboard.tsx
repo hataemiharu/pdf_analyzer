@@ -39,16 +39,28 @@ export const Dashboard: React.FC = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      const [documentsRes] = await Promise.all([
-        axios.get('/api/pdf?per_page=5')
+      // 最近のドキュメント（表示用）
+      const [recentDocsRes, allDocsRes] = await Promise.all([
+        axios.get('/api/pdf?per_page=5'),
+        axios.get('/api/pdf?per_page=1000') // 今月の計算用に多めに取得
       ]);
 
-      const documents = documentsRes.data.data;
-      
+      const recentDocuments = recentDocsRes.data.data;
+      const allDocuments = allDocsRes.data.data;
+
+      // 今月の処理数を計算
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+
+      const monthlyCount = allDocuments.filter((doc: any) => {
+        const docDate = new Date(doc.created_at);
+        return docDate.getMonth() === currentMonth && docDate.getFullYear() === currentYear;
+      }).length;
+
       setStats({
-        total_documents: documentsRes.data.total || documents.length,
-        recent_documents: documents,
-        monthly_stats: []
+        total_documents: recentDocsRes.data.total || allDocuments.length,
+        recent_documents: recentDocuments,
+        monthly_stats: [{ month: 'current', count: monthlyCount }]
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
